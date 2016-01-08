@@ -14,88 +14,88 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <time.h>
+
+#define AdressGyro 0x68
+#define AdressGyroX 0x1D
+#define AdressAccel 0x53
+#define AdressAccelX 0x32
+
+void leergyro(short int* Gyro);
+void readFromI2C(int device, unsigned char address, int number_of_bytes, unsigned char* result);
+void writeToI2C(int device, unsigned char address, unsigned char data);
+void leeraccel(short int* Accel);
+
+int fd;	
 
 int main(int argc, char **argv)
 {
 	
 	printf("**** CMPS11 example program ****\n");
 	
-	int fd;														// File descrition
+														// File descrition
 	char *fileName = "/dev/i2c-1";								// Name of the port we will be using
-	int  address = 0x68;										// Address of CMPS11 shifted right one bit
-	unsigned char buf[10];										// Buffer for data being read/ written on the i2c bus
+									// Address of CMPS11 shifted right one bit
+										// Buffer for data being read/ written on the i2c bus
+	short int gyro_raw[3];
+	short int accel_raw[3];
 	
 	if ((fd = open(fileName, O_RDWR)) < 0) {					// Open port for reading and writing
 		printf("Failed to open i2c port\n");
 		exit(1);
-	}
+	}	
+	struct timespec tNow;
+	writeToI2C(AdressAccel,0x2D,0x08);
 	
-	if (ioctl(fd, I2C_SLAVE, address) < 0) {					// Set the port options and set the address of the device we wish to speak to
+	writeToI2C(AdressAccel,0x31,0x0B);
+	
+		long t;
+	while(1){
+		leergyro(gyro_raw);
+		leeraccel(accel_raw);
+		clock_gettime(CLOCK_REALTIME,&tNow);
+	
+		t=tNow.tv_nsec;
+	
+		printf("%ld\n",t);
+	}
+}
+
+void readFromI2C(int device, unsigned char address, int number_of_bytes, unsigned char* result){	
+	
+	if (ioctl(fd, I2C_SLAVE, device) < 0) {					// Set the port options and set the address of the device we wish to speak to
 		printf("Unable to get bus access to talk to slave\n");
 		exit(1);
 	}
 	
-	buf[0] = 22;													// this is the register we wish to read from
+	write(fd,&address,1);
+	read(fd,result,number_of_bytes);	
+}
+
+void writeToI2C(int device, unsigned char address, unsigned char data){
 	
-	if ((write(fd, buf, 1)) != 1) {								// Send register to read from
-		printf("Error writing to i2c slave\n");
+	if (ioctl(fd, I2C_SLAVE, device) < 0) {					// Set the port options and set the address of the device we wish to speak to
+		printf("Unable to get bus access to talk to slave\n");
 		exit(1);
-	}
-	
-	if (read(fd, buf, 1) != 1) {								// Read back data into buf[]
-		printf("Unable to read from slave\n");
-		exit(1);
-	}
-	else {
-		
-		short int result = buf[0];
-		printf("Bearing as decimal: %d\n",result);
-		
-	}
-	
-	buf[0]=22;
-	buf[1]=24;
-	write(fd,buf,2);
-	
-	if ((write(fd, buf, 1)) != 1) {								// Send register to read from
-		printf("Error writing to i2c slave\n");
-		exit(1);
-	}
-	
-	if (read(fd, buf, 1) != 1) {								// Read back data into buf[]
-		printf("Unable to read from slave\n");
-		exit(1);
-	}
-	else {
-		
-		short int result = buf[0];
-		printf("Bearing as decimal: %d\n",result);
-		
-	}
-	
-	/*
-	while(1){
-	
-	buf[0] = 0x1D;													// this is the register we wish to read from
-	
-	if ((write(fd, buf, 1)) != 1) {								// Send register to read from
-		printf("Error writing to i2c slave\n");
-		exit(1);
-	}
-	
-	if (read(fd, buf, 6) != 6) {								// Read back data into buf[]
-		printf("Unable to read from slave\n");
-		exit(1);
-	}
-	else {
-		
-		unsigned char highByte = buf[2];
-		unsigned char lowByte = buf[3];
-		short int result = (highByte <<8) | lowByte;// Calculate the bearing as a word
-		printf("Bearing as decimal: %d\n",result);
-		
-	}
-	}
-	*/
-	return 0;
+	}	
+	unsigned char buffer[2];
+	buffer[0]=address;
+	buffer[1]=data;
+	write(fd,buffer,2);
+}
+
+void leergyro(short int* Gyro){
+	unsigned char buffer[7];
+	readFromI2C(AdressGyro,AdressGyroX,6,buffer);
+	Gyro[0]=(short int)buffer[0]<<8 | (short int)buffer[1];
+	Gyro[1]=(short int)buffer[2]<<8 | (short int)buffer[3];
+	Gyro[2]=(short int)buffer[4]<<8 | (short int)buffer[5];
+}
+
+void leeraccel(short int* Accel){
+	unsigned char buffer[7];
+	readFromI2C(AdressAccel,AdressAccelX,6,buffer);
+	Accel[0]=(short int)buffer[0]<<8 | (short int)buffer[1];
+	Accel[1]=(short int)buffer[2]<<8 | (short int)buffer[3];
+	Accel[2]=(short int)buffer[4]<<8 | (short int)buffer[5];
 }
