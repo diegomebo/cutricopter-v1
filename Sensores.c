@@ -21,10 +21,12 @@
 #define AdressAccel 0x53
 #define AdressAccelX 0x32
 
-void leergyro(short int* Gyro);
+void readGyro(short int* Gyro);
+float convertGyro(short int raw);
+float convertAccel(short int raw);
 void readFromI2C(int device, unsigned char address, int number_of_bytes, unsigned char* result);
 void writeToI2C(int device, unsigned char address, unsigned char data);
-void leeraccel(short int* Accel);
+void readAccel(short int* Accel);
 
 int fd;	
 
@@ -51,8 +53,8 @@ int main(int argc, char **argv)
 	
 		long t;
 	while(1){
-		leergyro(gyro_raw);
-		leeraccel(accel_raw);
+		readGyro(gyro_raw);
+		readAccel(accel_raw);
 		clock_gettime(CLOCK_REALTIME,&tNow);
 	
 		t=tNow.tv_nsec;
@@ -84,7 +86,7 @@ void writeToI2C(int device, unsigned char address, unsigned char data){
 	write(fd,buffer,2);
 }
 
-void leergyro(short int* Gyro){
+void readGyro(short int* Gyro){
 	unsigned char buffer[7];
 	readFromI2C(AdressGyro,AdressGyroX,6,buffer);
 	Gyro[0]=(short int)buffer[0]<<8 | (short int)buffer[1];
@@ -92,10 +94,23 @@ void leergyro(short int* Gyro){
 	Gyro[2]=(short int)buffer[4]<<8 | (short int)buffer[5];
 }
 
-void leeraccel(short int* Accel){
+void readAccel(short int* Accel){
 	unsigned char buffer[7];
 	readFromI2C(AdressAccel,AdressAccelX,6,buffer);
 	Accel[0]=(short int)buffer[0]<<8 | (short int)buffer[1];
 	Accel[1]=(short int)buffer[2]<<8 | (short int)buffer[3];
 	Accel[2]=(short int)buffer[4]<<8 | (short int)buffer[5];
+}
+
+
+float convertGyro(short int raw){
+	return raw * 0.069565;
+}
+
+float convertAccel(short int raw){
+	return raw / 256;
+}
+
+float getAccelAngles(float* accel, float* result){
+	
 }
