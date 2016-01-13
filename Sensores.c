@@ -111,6 +111,19 @@ float convertAccel(short int raw){
 	return raw / 256;
 }
 
-float getAccelAngles(float* accel, float* result){
-	
+void crossProduct(float* v1, float* v2, float* result){	
+  result[0] = (v1[1] * v2[2]) - (v1[2] * v2[1]);
+  result[1] = (v1[2] * v2[0]) - (v1[0] * v2[2]);
+  result[2] = (v1[0] * v2[1]) - (v1[1] * v2[0]);
 }
+
+void getAccelAngles(float* accel, float* result){
+	result[0] = -atan2(accel[0], sqrt(accel[1] * accel[1] + accel[2] * accel[2]));
+	float temp1[3];
+	float temp2[3];
+	float X[3] = {1, 0, 0};
+	crossProduct(accel,X,temp1);
+	crossProduct(X,temp1,temp2);
+	result[1] =  atan2(temp2[1], temp2[2]);
+}
+
